@@ -22,7 +22,8 @@
             var errorMessage = $.util.colors.red(error);
             $.util.log(errorMessage);
 
-            if (config.exitOnError) { // stops plugin errors killing the Watch task
+            // stops plugin errors killing the Watch task
+            if (config.exitOnError) {
                 process.exit(1);
             }
         };
@@ -34,6 +35,10 @@
         cfg.uglifySettings = {
             mangle: false
         };
+
+        // Would be better to use something like require.js.
+        // For simplicity, ordering js scripts in order of dependency.
+        cfg.jsDependency = ['http.service.js', 'animate.js', 'menu.js'];
 
         return cfg;
     })();
@@ -51,12 +56,12 @@
     /*** Build ***/
     gulp.task('build:debug', function(done) {
         config.env = 'debug';
-        $.sequence('clean:debug', 'js', 'json', 'index', done);
+        $.sequence('clean:debug', ['js', 'json'], 'index', done);
     });
 
     gulp.task('build:release', function(done) {
         config.env = 'release';
-        $.sequence('clean:release', 'js', 'json', 'index', done);
+        $.sequence('clean:release', ['js', 'json'], 'index', done);
     });
 
     /*** Clean ***/
@@ -86,6 +91,7 @@
     gulp.task('js', function() {
         return gulp
             .src(['./src/js/*.js'])
+            .pipe($.order(config.jsDependency, { base: '.' }))
             .pipe($.if(!config.isDebug(), $.concat('app.js')))
             .pipe($.if(!config.isDebug(), $.uglify(config.uglifySettings)))
             .pipe(gulp.dest(config.destDir() + '/js'))
@@ -96,10 +102,11 @@
     
     gulp.task('index', function() {
         var sources = gulp
-            .src(['./**/*.css', './**/*.js'], {
+            .src(['./**/*.js'], {
                 read: false,
                 cwd: config.destDir()
-            });
+            })
+            .pipe($.order(config.jsDependency, { base: config.destDir() + '/js' }));
 
         return gulp
             .src('./src/index.html')
@@ -109,7 +116,6 @@
                 stream: true
             }));
     });
-
 
     /*** Serve & Reload ***/
     gulp.task('browser-sync', function() {
