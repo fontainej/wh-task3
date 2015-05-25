@@ -25,8 +25,7 @@ var menu = (function () {
                 animate.hide(subMenu);
 
                 // Click event handler to show/hide an item with a sub menu
-                anchor.addEventListener('click', function (e) {
-                    e.preventDefault();
+                anchor.addEventListener('click', function () {
                     animate.toggle(this.nextSibling);
                 });
 
